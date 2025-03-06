@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.10" />
@@ -18,7 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Api.Leyer\Api.Leyer.csproj" />
     <ProjectReference Include="..\Application.Leyer\Application.Leyer.csproj" />
+    <ProjectReference Include="..\Domain.Leyer\Domain.Leyer.csproj" />
     <ProjectReference Include="..\Infrastructure.Leyer\Infrastructure.Leyer.csproj" />
   </ItemGroup>
 

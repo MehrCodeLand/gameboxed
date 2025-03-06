@@ -23,7 +23,7 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Configure many-to-many relationship between Users and Roles
+        // Configure many-to-many relationship
         modelBuilder.Entity<UserRole>()
             .HasKey(ur => new { ur.UserId, ur.RoleId });
 
@@ -36,6 +36,13 @@ public class AppDbContext : DbContext
             .HasOne(ur => ur.Role)
             .WithMany(r => r.UserRoles)
             .HasForeignKey(ur => ur.RoleId);
+
+        // Seed roles into the database
+        modelBuilder.Entity<Role>().HasData(
+            new Role { Id = 1, Name = "User" },
+            new Role { Id = 2, Name = "Moderator" },
+            new Role { Id = 3, Name = "Admin" }
+        );
 
         base.OnModelCreating(modelBuilder);
     }

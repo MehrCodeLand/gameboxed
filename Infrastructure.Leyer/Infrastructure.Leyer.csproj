@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.10">
@@ -18,6 +19,21 @@
   <ItemGroup>
     <ProjectReference Include="..\Application.Leyer\Application.Leyer.csproj" />
     <ProjectReference Include="..\Domain.Leyer\Domain.Leyer.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Helper\MyMessageHelper.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>MyMessageHelper.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Helper\MyMessageHelper.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>MyMessageHelper.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

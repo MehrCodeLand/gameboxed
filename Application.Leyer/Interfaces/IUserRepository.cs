@@ -1,4 +1,7 @@
-﻿using System;
+﻿using Api.Leyer.DTOs;
+using Api.Leyer.Strcuts;
+using Azure;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,5 +11,6 @@ namespace Application.Leyer.Interfaces
 {
     public interface IUserRepository
     {
+        Task<MyResponse<bool>> RegisterASync(UserRegisterDto dto);
     }
 }
