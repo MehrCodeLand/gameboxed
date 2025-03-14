@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<UserRole> UserRoles { get; set; }
     public DbSet<Game> Games { get; set; }
     public DbSet<GameRating> GameRatings { get; set; }
+    public DbSet<FavoriteGame> FavoriteGames { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -43,6 +44,18 @@ public class AppDbContext : DbContext
             new Role { Id = 2, Name = "Moderator" },
             new Role { Id = 3, Name = "Admin" }
         );
+
+        // Configure many-to-many for User - FavoriteGames via FavoriteGame
+        modelBuilder.Entity<FavoriteGame>()
+            .HasKey(fg => new { fg.UserId, fg.GameId });
+        modelBuilder.Entity<FavoriteGame>()
+            .HasOne(fg => fg.User)
+            .WithMany(u => u.FavoriteGames)
+            .HasForeignKey(fg => fg.UserId);
+        modelBuilder.Entity<FavoriteGame>()
+            .HasOne(fg => fg.Game)
+            .WithMany(g => g.FavoritedBy)
+            .HasForeignKey(fg => fg.GameId);
 
         base.OnModelCreating(modelBuilder);
     }

@@ -19,8 +19,8 @@ public struct MyResponse<T>
     public T Data { get; set; }
 
     // Success response
-    public static MyResponse<T> Success(string message) =>
-        new MyResponse<T> { Message = message, IsError = false };
+    public static MyResponse<T> Success(string message , T data ) =>
+        new MyResponse<T> { Message = message, IsError = false , Data = data};
 
     // Error response
     public static MyResponse<T> Error(string message) =>

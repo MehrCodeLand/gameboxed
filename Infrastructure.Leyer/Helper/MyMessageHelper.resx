@@ -120,6 +120,12 @@
   <data name="EmailAndUsername" xml:space="preserve">
     <value>Email or username not found. Please check your details and try again, or create a new account if you're a new user.</value>
   </data>
+  <data name="InvalidCredentials" xml:space="preserve">
+    <value>somthings Wrong</value>
+  </data>
+  <data name="NotFound" xml:space="preserve">
+    <value>Not Found</value>
+  </data>
   <data name="TaskDone" xml:space="preserve">
     <value>Done</value>
   </data>

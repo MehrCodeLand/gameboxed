@@ -1,5 +1,5 @@
 using Application.Leyer.Interfaces;
-using Infrastructure.Leyer.MyDbSetting;
+using Infrastructure.Leyer.MyDbSetting; // Contains AppDbContext
 using Infrastructure.Leyer.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -18,10 +18,7 @@ builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<IGameRatingRepository, GameRatingRepository>();
 
-// --- Register application services (implement IUserService & ITokenService as needed) ---
-// builder.Services.AddScoped<IUserService, UserService>();
-// builder.Services.AddScoped<ITokenService, TokenService>();
-
+// --- Add controllers ---
 builder.Services.AddControllers();
 
 // --- Configure JWT Authentication ---

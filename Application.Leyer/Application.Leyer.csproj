@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Api.Leyer\Api.Leyer.csproj" />
+    <ProjectReference Include="..\Domain.Leyer\Domain.Leyer.csproj" />
   </ItemGroup>
 
 </Project>
