@@ -102,22 +102,20 @@ namespace Infrastructure.Leyer.Repositories
         // ----- New Login Implementation -----
         public async Task<MyResponse<string>> LoginAsync(UserLoginDto dto)
         {
-            // Find the user by username (assuming case-insensitive)
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == dto.Username.ToLower());
             if (user == null)
                 return MyResponse<string>.Error(MyMessageHelper.NotFound);
 
-            // Verify the password
             if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
                 return MyResponse<string>.Error(MyMessageHelper.InvalidCredentials);
 
-            // Generate JWT Token
+            // Generate JWT token
             var claims = new[]
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.UniqueName, user.Username)
-                // Optionally add role claims here
-            };
+        new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+        new Claim(JwtRegisteredClaimNames.UniqueName, user.Username)
+        // Add role claims if needed
+    };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -131,9 +129,37 @@ namespace Infrastructure.Leyer.Repositories
             );
 
             string tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+            // Create and save a new login session
+            var session = new UserSession
+            {
+                UserId = user.Id,
+                Token = tokenString,
+                IsLoggedIn = true,
+                LoginTime = DateTime.UtcNow
+            };
+
+            await _context.UserSessions.AddAsync(session);
+            await _context.SaveChangesAsync();
+
             return MyResponse<string>.Success(MyMessageHelper.TaskDone, tokenString);
         }
 
+        public async Task<MyResponse<bool>> LogoutAsync(string token)
+        {
+            // Find active session by token
+            var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.Token == token && s.IsLoggedIn);
+            if (session == null)
+                return MyResponse<bool>.Error("Active session not found.");
+
+            session.IsLoggedIn = false;
+            session.LogoutTime = DateTime.UtcNow;
+
+            _context.UserSessions.Update(session);
+            await _context.SaveChangesAsync();
+
+            return MyResponse<bool>.Success("Logout successful.", true);
+        }
         public async Task<IEnumerable<User>> GetAllAsync() =>
             await _context.Users.ToListAsync();
 

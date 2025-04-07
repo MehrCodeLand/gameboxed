@@ -1,6 +1,7 @@
 ﻿using Api.Leyer.DTOs;
 using Application.Leyer.Interfaces;
 using Domain.Leyer.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 namespace gameboxed.Controllers;
 
@@ -97,11 +98,24 @@ public class UserController : ControllerBase
         return result.IsError ? Unauthorized(result) : Ok(result);
     }
 
-    // Since JWT is stateless, logout is handled on the client-side by removing the token.
     [HttpPost("logout")]
-    public IActionResult Logout()
+    public async Task<IActionResult> Logout([FromHeader] string authorization)
     {
-        // You could perform additional actions here, such as token blacklisting.
-        return Ok(new { message = "Logout successful." });
+        // Expecting the header value to be "Bearer {token}"
+        if (string.IsNullOrWhiteSpace(authorization) || !authorization.StartsWith("Bearer "))
+            return BadRequest(new { message = "Invalid authorization header." });
+
+        var token = authorization.Substring("Bearer ".Length).Trim();
+        var result = await _userRepo.LogoutAsync(token);
+        return result.IsError ? BadRequest(result) : Ok(result);
+    }
+
+
+
+    [Authorize]
+    [HttpGet("check")]
+    public IActionResult Check()
+    {
+        return Ok("hello world");
     }
 }

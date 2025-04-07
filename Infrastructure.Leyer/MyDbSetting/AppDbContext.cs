@@ -21,6 +21,9 @@ public class AppDbContext : DbContext
     public DbSet<Game> Games { get; set; }
     public DbSet<GameRating> GameRatings { get; set; }
     public DbSet<FavoriteGame> FavoriteGames { get; set; }
+    public DbSet<UserSession> UserSessions { get; set; }
+
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
