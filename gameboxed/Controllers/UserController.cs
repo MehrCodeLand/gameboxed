@@ -1,8 +1,11 @@
 ﻿using Api.Leyer.DTOs;
 using Application.Leyer.Interfaces;
+using Azure;
 using Domain.Leyer.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 namespace gameboxed.Controllers;
 
 
@@ -11,15 +14,17 @@ namespace gameboxed.Controllers;
 public class UserController : ControllerBase
 {
     private readonly IUserRepository _userRepo;
-
-    public UserController(IUserRepository userRepository)
+    private readonly ITokenService _tokenService;
+    private readonly IGameRepository _gameRepo;
+    public UserController(IUserRepository userRepository, ITokenService tokenService, IGameRepository gameRepo)
     {
         _userRepo = userRepository;
+        _tokenService = tokenService;
+        _gameRepo = gameRepo;
     }
 
-    /// <summary>
-    /// Registers a new user.
-    /// </summary>
+
+
     [HttpPost("register")]
     public async Task<IActionResult> Register(UserRegisterDto dto)
     {
@@ -116,6 +121,172 @@ public class UserController : ControllerBase
     [HttpGet("check")]
     public IActionResult Check()
     {
-        return Ok("hello world");
+
+        // Get the current user's claims
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var username = User.FindFirstValue(ClaimTypes.Name);
+        var roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+
+        return Ok(new
+        {
+            Message = "Authentication successful",
+            UserId = userId,
+            Username = username,
+            Roles = roles
+        });
     }
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("admin-check")]
+    public IActionResult AdminCheck()
+    {
+        return Ok(new { Message = "You have admin privileges" });
+    }
+
+    [Authorize(Roles = "User")]
+    [HttpGet("user-check")]
+    public IActionResult UserCheck()
+    {
+        return Ok(new { Message = "You have user privileges" });
+    }
+
+
+
+
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAllUsers()
+    {
+        var users = await _userRepo.GetAllAsync();
+        return Ok(new { Message = "Success", Data = users });
+    }
+
+
+    [Authorize]
+    [HttpGet("profile")]
+    public async Task<IActionResult> GetCurrentUserProfile()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int userIdInt))
+            return Unauthorized(new { Message = "Invalid user identifier" });
+
+        var result = await _userRepo.GetById(userIdInt);
+        if (result.IsError)
+            return NotFound(result);
+
+        return Ok(result);
+    }
+
+
+
+
+
+    // Method to get all users - Admin only
+    [Authorize(Roles = "Admin")]
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAllUsers()
+    {
+        var users = await _userRepo.GetAllAsync();
+        return Ok(new { Message = "Success", Data = users });
+    }
+
+    // Method to get current user profile
+    [Authorize]
+    [HttpGet("profile")]
+    public async Task<IActionResult> GetCurrentUserProfile()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int userIdInt))
+            return Unauthorized(new { Message = "Invalid user identifier" });
+
+        var result = await _userRepo.GetById(userIdInt);
+        if (result.IsError)
+            return NotFound(result);
+
+        return Ok(result);
+    }
+
+    // Method to get user's favorite games
+    [Authorize]
+    [HttpGet("my-favorites")]
+    public async Task<IActionResult> GetMyFavoriteGames()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int userIdInt))
+            return Unauthorized(new { Message = "Invalid user identifier" });
+
+        // This method needs to be added to the user repository
+        var user = await _userRepo.GetUserWithFavoriteGames(userIdInt);
+        if (user == null)
+            return NotFound(new { Message = "User not found" });
+
+        return Ok(new { Message = "Success", FavoriteGames = user.FavoriteGames.Select(fg => fg.Game) });
+    }
+
+    // Method to change user password
+    [Authorize]
+    [HttpPut("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int userIdInt))
+            return Unauthorized(new { Message = "Invalid user identifier" });
+
+        // This method needs to be added to the user repository
+        var result = await _userRepo.ChangePasswordAsync(userIdInt, dto);
+        if (result.IsError)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    // Method to rate a game
+    [Authorize]
+    [HttpPost("rate-game/{gameId}")]
+    public async Task<IActionResult> RateGame(int gameId, [FromBody] RateGameDto dto)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int userIdInt))
+            return Unauthorized(new { Message = "Invalid user identifier" });
+
+        var result = await _gameRepo.RateGameAsync(userIdInt, gameId, dto.Rating);
+        if (result.IsError)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+
+
 }
+
+
+
+
+//{
+//  "username": "aria",
+//  "email": "aa@gmail.com",
+//  "password": "1234",
+//  "rePassword": "1234"
+//}
+
+
+
+//{
+//  "message": "Done",
+//  "isError": false,
+//  "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwidW5pcXVlX25hbWUiOiJhcmlhIiwiZXhwIjoxNzQ0ODkwMDU3LCJpc3MiOiJNeUdhbWVBcHAiLCJhdWQiOiJNeUdhbWVBcHBVc2VycyJ9.nmJ9y38pzOIFHhT8n4Yg6_mutrjIwiM25098SdLR6I0"
+//}
+
+
+
+
+	
+//Response body
+//Download
+//{
+//  "message": "Done",
+//  "isError": false,
+//  "data": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwidW5pcXVlX25hbWUiOiJhcmlhIiwianRpIjoiZWNkYTFhMDktMmRhMy00OWE5LWI1MGUtNjNjYWQwN2JlN2E0IiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiVXNlciIsImV4cCI6MTc0NDg5NjI5OCwiaXNzIjoiTXlHYW1lQXBwIiwiYXVkIjoiTXlHYW1lQXBwVXNlcnMifQ.oyEcChDxIbsVgVRVcExIUqOYS_NCA0pIlDoOQ570bOA"
+//}

@@ -3,18 +3,10 @@ using Domain.Leyer.Entities;
 using Infrastructure.Leyer.Helper;
 using Infrastructure.Leyer.MyDbSetting;
 using Microsoft.EntityFrameworkCore;
-using BCrypt.Net;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Api.Leyer.DTOs;
 using Api.Leyer.Strcuts;
 using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
+
 
 namespace Infrastructure.Leyer.Repositories
 {
@@ -22,12 +14,14 @@ namespace Infrastructure.Leyer.Repositories
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
-        public UserRepository(AppDbContext context , IConfiguration configuration)
+        private readonly ITokenService _tokenService;
+
+        public UserRepository(AppDbContext context, IConfiguration configuration, ITokenService tokenService)
         {
             _context = context;
             _configuration = configuration;
+            _tokenService = tokenService;
         }
-
 
         // fave game part
         public async Task<MyResponse<bool>> AddGameToFavoritesAsync(int userId, int gameId)
@@ -102,33 +96,22 @@ namespace Infrastructure.Leyer.Repositories
         // ----- New Login Implementation -----
         public async Task<MyResponse<string>> LoginAsync(UserLoginDto dto)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == dto.Username.ToLower());
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Username == dto.Username.ToLower());
+                
             if (user == null)
                 return MyResponse<string>.Error(MyMessageHelper.NotFound);
 
             if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
                 return MyResponse<string>.Error(MyMessageHelper.InvalidCredentials);
 
-            // Generate JWT token
-            var claims = new[]
-            {
-        new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-        new Claim(JwtRegisteredClaimNames.UniqueName, user.Username)
-        // Add role claims if needed
-    };
+            // Get user roles
+            var roles = user.UserRoles.Select(ur => ur.Role.Name).ToList();
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["Jwt:ExpireMinutes"])),
-                signingCredentials: creds
-            );
-
-            string tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+            // Generate JWT token using token service
+            string tokenString = _tokenService.GenerateAccessToken(user.Id, user.Username, roles);
 
             // Create and save a new login session
             var session = new UserSession
@@ -147,19 +130,14 @@ namespace Infrastructure.Leyer.Repositories
 
         public async Task<MyResponse<bool>> LogoutAsync(string token)
         {
-            // Find active session by token
-            var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.Token == token && s.IsLoggedIn);
-            if (session == null)
+            bool result = await _tokenService.RevokeTokenAsync(token);
+
+            if (!result)
                 return MyResponse<bool>.Error("Active session not found.");
-
-            session.IsLoggedIn = false;
-            session.LogoutTime = DateTime.UtcNow;
-
-            _context.UserSessions.Update(session);
-            await _context.SaveChangesAsync();
 
             return MyResponse<bool>.Success("Logout successful.", true);
         }
+
         public async Task<IEnumerable<User>> GetAllAsync() =>
             await _context.Users.ToListAsync();
 
@@ -223,6 +201,37 @@ namespace Infrastructure.Leyer.Repositories
                 return MyResponse<bool>.Success(MyMessageHelper.TaskDone, true);
 
             return MyResponse<bool>.Error(MyMessageHelper.NotFound);
+        }
+
+
+
+        public async Task<User> GetUserWithFavoriteGames(int userId)
+        {
+            return await _context.Users
+                .Include(u => u.FavoriteGames)
+                .ThenInclude(fg => fg.Game)
+                .SingleOrDefaultAsync(u => u.Id == userId);
+        }
+
+        public async Task<MyResponse<bool>> ChangePasswordAsync(int userId, ChangePasswordDto dto)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+                return MyResponse<bool>.Error(MyMessageHelper.NotFound);
+
+            // Verify current password
+            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
+                return MyResponse<bool>.Error("Current password is incorrect");
+
+            // Verify new password and confirmation match
+            if (dto.NewPassword != dto.ConfirmPassword)
+                return MyResponse<bool>.Error("New password and confirmation do not match");
+
+            // Update password
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            await UpdateAsync(user);
+
+            return MyResponse<bool>.Success(MyMessageHelper.TaskDone, true);
         }
 
 

@@ -24,6 +24,9 @@ namespace Application.Leyer.Interfaces
         Task<MyResponse<string>> LoginAsync(UserLoginDto dto);
         Task<MyResponse<bool>> LogoutAsync(string token);
 
+
+        Task<User> GetUserWithFavoriteGames(int userId);
+        Task<MyResponse<bool>> ChangePasswordAsync(int userId, ChangePasswordDto dto);
     }
 }
 
