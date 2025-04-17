@@ -30,8 +30,7 @@ namespace Infrastructure.Leyer.Repositories
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-                new Claim(ClaimTypes.Name, username),  // Change to ClaimTypes.Name for consistency
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(ClaimTypes.Name, username)
             };
 
             // Add roles to claims
