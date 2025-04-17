@@ -109,6 +109,7 @@ namespace Infrastructure.Leyer.Repositories
 
             // Get user roles
             var roles = user.UserRoles.Select(ur => ur.Role.Name).ToList();
+            Console.WriteLine($"Found roles for user: {string.Join(", ", roles)}");
 
             // Generate JWT token using token service
             string tokenString = _tokenService.GenerateAccessToken(user.Id, user.Username, roles);
