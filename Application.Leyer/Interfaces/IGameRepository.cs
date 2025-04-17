@@ -21,7 +21,26 @@ namespace Application.Leyer.Interfaces
             /// Gets a game by its ID.
             /// </summary>
             Task<Game> GetByIdAsync(int id);
+
+            /// <summary>
+            /// Rates a game.
+            /// </summary>
             Task<MyResponse<bool>> RateGameAsync(int userId, int gameId, int rating);
+
+            /// <summary>
+            /// Adds a new game.
+            /// </summary>
+            Task AddAsync(Game game);
+
+            /// <summary>
+            /// Updates an existing game.
+            /// </summary>
+            Task UpdateAsync(Game game);
+
+            /// <summary>
+            /// Deletes a game.
+            /// </summary>
+            Task DeleteAsync(int id);
         }
     }
 }
