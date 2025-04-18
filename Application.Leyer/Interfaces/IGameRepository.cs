@@ -1,4 +1,5 @@
-﻿using Api.Leyer.Strcuts;
+﻿using Api.Leyer.DTOs;
+using Api.Leyer.Strcuts;
 using Domain.Leyer.Entities;
 using System;
 using System.Collections.Generic;
@@ -12,35 +13,14 @@ namespace Application.Leyer.Interfaces
     {
         public interface IGameRepository
         {
-            /// <summary>
-            /// Gets all games.
-            /// </summary>
             Task<IEnumerable<Game>> GetAllAsync();
-
-            /// <summary>
-            /// Gets a game by its ID.
-            /// </summary>
             Task<Game> GetByIdAsync(int id);
-
-            /// <summary>
-            /// Rates a game.
-            /// </summary>
             Task<MyResponse<bool>> RateGameAsync(int userId, int gameId, int rating);
-
-            /// <summary>
-            /// Adds a new game.
-            /// </summary>
-            Task AddAsync(Game game);
-
-            /// <summary>
-            /// Updates an existing game.
-            /// </summary>
-            Task UpdateAsync(Game game);
-
-            /// <summary>
-            /// Deletes a game.
-            /// </summary>
-            Task DeleteAsync(int id);
+            Task<MyResponse<double>> GetAverageRatingAsync(int gameId);
+            Task<MyResponse<bool>> AddAsync(GameDto gameDto);
+            Task<MyResponse<bool>> UpdateAsync(int id, GameDto gameDto);
+            Task<MyResponse<bool>> DeleteAsync(int id);
+            Task<MyResponse<IEnumerable<Game>>> SearchGamesAsync(string searchTerm, int limit = 3);
         }
     }
 }

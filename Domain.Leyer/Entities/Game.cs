@@ -15,5 +15,7 @@ namespace Domain.Leyer.Entities
         // Navigation property
         public ICollection<GameRating> GameRatings { get; set; }
         public ICollection<FavoriteGame> FavoritedBy { get; set; }
+        public ICollection<PlayedGame> PlayedBy { get; set; }
+
     }
 }

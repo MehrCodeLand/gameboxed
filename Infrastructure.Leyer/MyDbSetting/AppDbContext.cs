@@ -22,6 +22,8 @@ public class AppDbContext : DbContext
     public DbSet<GameRating> GameRatings { get; set; }
     public DbSet<FavoriteGame> FavoriteGames { get; set; }
     public DbSet<UserSession> UserSessions { get; set; }
+    public DbSet<PlayedGame> PlayedGames { get; set; } 
+
 
 
 
@@ -59,6 +61,26 @@ public class AppDbContext : DbContext
             .HasOne(fg => fg.Game)
             .WithMany(g => g.FavoritedBy)
             .HasForeignKey(fg => fg.GameId);
+
+        modelBuilder.Entity<PlayedGame>()
+            .HasOne(pg => pg.User)
+            .WithMany(u => u.PlayedGames)
+            .HasForeignKey(pg => pg.UserId);
+
+        modelBuilder.Entity<PlayedGame>()
+            .HasOne(pg => pg.Game)
+            .WithMany(g => g.PlayedBy)
+            .HasForeignKey(pg => pg.GameId);
+
+        modelBuilder.Entity<PlayedGame>()
+            .Property(pg => pg.Review)
+            .HasMaxLength(200);
+
+        // Update GameRating to allow null ratings
+        modelBuilder.Entity<GameRating>()
+            .Property(gr => gr.Rating)
+            .IsRequired(false);
+
 
         base.OnModelCreating(modelBuilder);
     }

@@ -236,6 +236,77 @@ namespace Infrastructure.Leyer.Repositories
         }
 
 
+        // Add these methods to the UserRepository class
+
+        public async Task<MyResponse<bool>> AddGameToPlayedAsync(int userId, PlayedGameDto dto)
+        {
+            // Check if user exists
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+                return MyResponse<bool>.Error(MyMessageHelper.NotFound);
+
+            // Check if game exists
+            var game = await _context.Games.FindAsync(dto.GameId);
+            if (game == null)
+                return MyResponse<bool>.Error("Game not found.");
+
+            // Check if the game is already in played list
+            bool alreadyPlayed = await _context.PlayedGames
+                .AnyAsync(pg => pg.UserId == userId && pg.GameId == dto.GameId);
+
+            if (alreadyPlayed)
+                return MyResponse<bool>.Error("Game already in played list.");
+
+            // Validate review length
+            if (dto.Review != null && dto.Review.Length > 200)
+                return MyResponse<bool>.Error("Review cannot exceed 200 characters.");
+
+            // Add played record
+            var playedGame = new PlayedGame
+            {
+                UserId = userId,
+                GameId = dto.GameId,
+                PlayedDate = DateTime.UtcNow,
+                Review = dto.Review
+            };
+
+            await _context.PlayedGames.AddAsync(playedGame);
+            await _context.SaveChangesAsync();
+
+            return MyResponse<bool>.Success(MyMessageHelper.TaskDone, true);
+        }
+
+        public async Task<MyResponse<bool>> RemoveGameFromPlayedAsync(int userId, int gameId)
+        {
+            var playedGame = await _context.PlayedGames
+                .SingleOrDefaultAsync(pg => pg.UserId == userId && pg.GameId == gameId);
+
+            if (playedGame == null)
+                return MyResponse<bool>.Error("Played game record not found.");
+
+            _context.PlayedGames.Remove(playedGame);
+            await _context.SaveChangesAsync();
+
+            return MyResponse<bool>.Success(MyMessageHelper.TaskDone, true);
+        }
+
+        public async Task<MyResponse<IEnumerable<PlayedGame>>> GetPlayedGamesAsync(int userId)
+        {
+            var user = await _context.Users
+                .Include(u => u.PlayedGames)
+                    .ThenInclude(pg => pg.Game)
+                .SingleOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+                return MyResponse<IEnumerable<PlayedGame>>.Error(MyMessageHelper.NotFound);
+
+            return MyResponse<IEnumerable<PlayedGame>>.Success(
+                MyMessageHelper.TaskDone,
+                user.PlayedGames);
+        }
+
+
+
         // db part 
         public async Task UpdateAsync(User user)
         {

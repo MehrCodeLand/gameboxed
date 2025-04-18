@@ -23,8 +23,9 @@ namespace Application.Leyer.Interfaces
         Task<MyResponse<bool>> RemoveGameFromFavoritesAsync(int userId, int gameId);
         Task<MyResponse<string>> LoginAsync(UserLoginDto dto);
         Task<MyResponse<bool>> LogoutAsync(string token);
-
-
+        Task<MyResponse<bool>> RemoveGameFromPlayedAsync(int userId, int gameId);
+        Task<MyResponse<bool>> AddGameToPlayedAsync(int userId, PlayedGameDto dto);
+        Task<MyResponse<IEnumerable<PlayedGame>>> GetPlayedGamesAsync(int userId);
         Task<User> GetUserWithFavoriteGames(int userId);
         Task<MyResponse<bool>> ChangePasswordAsync(int userId, ChangePasswordDto dto);
     }

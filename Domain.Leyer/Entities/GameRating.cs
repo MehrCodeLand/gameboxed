@@ -16,6 +16,6 @@ public class GameRating
     public int GameId { get; set; }
     public Game Game { get; set; }
 
-    public int Rating { get; set; } // You can change this to a float if needed
+    public int? Rating { get; set; } // You can change this to a float if needed
     public DateTime RatedAt { get; set; }
 }

@@ -17,4 +17,5 @@ public class User
     public ICollection<UserRole> UserRoles { get; set; }
     public ICollection<GameRating> GameRatings { get; set; }
     public ICollection<FavoriteGame> FavoriteGames { get; set; }
+    public ICollection<PlayedGame> PlayedGames { get; set; }
 }
