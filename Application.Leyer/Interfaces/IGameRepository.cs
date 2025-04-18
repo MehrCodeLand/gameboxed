@@ -11,16 +11,15 @@ namespace Application.Leyer.Interfaces
 {
     public interface IGameRepository
     {
-        public interface IGameRepository
-        {
-            Task<IEnumerable<Game>> GetAllAsync();
-            Task<Game> GetByIdAsync(int id);
-            Task<MyResponse<bool>> RateGameAsync(int userId, int gameId, int rating);
-            Task<MyResponse<double>> GetAverageRatingAsync(int gameId);
-            Task<MyResponse<bool>> AddAsync(GameDto gameDto);
-            Task<MyResponse<bool>> UpdateAsync(int id, GameDto gameDto);
-            Task<MyResponse<bool>> DeleteAsync(int id);
-            Task<MyResponse<IEnumerable<Game>>> SearchGamesAsync(string searchTerm, int limit = 3);
-        }
+        Task<IEnumerable<Game>> GetAllAsync();
+        Task<Game> GetByIdAsync(int id);
+        Task<MyResponse<bool>> RateGameAsync(int userId, int gameId, int rating);
+        Task<MyResponse<double>> GetAverageRatingAsync(int gameId);
+        Task<MyResponse<bool>> AddAsync(GameDto gameDto);
+        Task<MyResponse<bool>> UpdateAsync(int id, GameDto gameDto);
+        Task<MyResponse<bool>> DeleteAsync(int id);
+        Task<MyResponse<IEnumerable<Game>>> SearchGamesAsync(string searchTerm, int limit = 3);
+
+
     }
 }
