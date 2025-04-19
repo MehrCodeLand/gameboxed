@@ -14,37 +14,51 @@ namespace gameboxed.Controllers
     {
         private readonly IGameRepository _gameRepo;
         private readonly IUserRepository _userRepo;
+        private readonly ILogger<GameController> _logger;
 
-        public GameController(IGameRepository gameRepo, IUserRepository userRepo)
+        public GameController(IGameRepository gameRepo, IUserRepository userRepo, ILogger<GameController> logger)
         {
             _gameRepo = gameRepo;
             _userRepo = userRepo;
+            _logger = logger;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAllGames()
         {
-            var games = await _gameRepo.GetAllAsync();
-            return Ok(new { Message = "Success", Data = games });
+            _logger.LogInformation("Retrieving all games");
+            var result = await _gameRepo.GetAllAsync();
+
+            if (result.IsError)
+                return NotFound(result);
+
+            return Ok(result);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetGame(int id)
         {
-            var game = await _gameRepo.GetByIdAsync(id);
-            if (game == null)
-                return NotFound(new { Message = "Game not found" });
+            _logger.LogInformation("Retrieving game with ID: {GameId}", id);
+            var result = await _gameRepo.GetByIdAsync(id);
 
-            return Ok(new { Message = "Success", Data = game });
+            if (result.IsError)
+                return NotFound(result);
+
+            return Ok(result);
         }
 
         [HttpGet("search")]
         public async Task<IActionResult> SearchGames([FromQuery] string term, [FromQuery] int limit = 3)
         {
             if (string.IsNullOrWhiteSpace(term))
-                return BadRequest(new { Message = "Search term is required" });
+            {
+                _logger.LogWarning("Search attempted with empty term");
+                return BadRequest(new MyResponse<string> { Message = "Search term is required", IsError = true });
+            }
 
+            _logger.LogInformation("Searching games with term: {SearchTerm}, limit: {Limit}", term, limit);
             var result = await _gameRepo.SearchGamesAsync(term, limit);
+
             if (result.IsError)
                 return NotFound(result);
 
@@ -54,7 +68,9 @@ namespace gameboxed.Controllers
         [HttpGet("{id}/rating")]
         public async Task<IActionResult> GetGameAverageRating(int id)
         {
+            _logger.LogInformation("Getting average rating for game ID: {GameId}", id);
             var result = await _gameRepo.GetAverageRatingAsync(id);
+
             if (result.IsError)
                 return NotFound(result);
 
@@ -67,9 +83,14 @@ namespace gameboxed.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int userIdInt))
-                return Unauthorized(new { Message = "Invalid user identifier" });
+            {
+                _logger.LogWarning("Invalid user identifier in token");
+                return Unauthorized(new MyResponse<string> { Message = "Invalid user identifier", IsError = true });
+            }
 
+            _logger.LogInformation("User {UserId} rating game {GameId} with score {Rating}", userIdInt, id, dto.Rating);
             var result = await _gameRepo.RateGameAsync(userIdInt, id, dto.Rating);
+
             if (result.IsError)
                 return BadRequest(result);
 
@@ -82,9 +103,14 @@ namespace gameboxed.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int userIdInt))
-                return Unauthorized(new { Message = "Invalid user identifier" });
+            {
+                _logger.LogWarning("Invalid user identifier in token");
+                return Unauthorized(new MyResponse<string> { Message = "Invalid user identifier", IsError = true });
+            }
 
+            _logger.LogInformation("User {UserId} adding game {GameId} to played list", userIdInt, dto.GameId);
             var result = await _userRepo.AddGameToPlayedAsync(userIdInt, dto);
+
             if (result.IsError)
                 return BadRequest(result);
 
@@ -97,9 +123,14 @@ namespace gameboxed.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int userIdInt))
-                return Unauthorized(new { Message = "Invalid user identifier" });
+            {
+                _logger.LogWarning("Invalid user identifier in token");
+                return Unauthorized(new MyResponse<string> { Message = "Invalid user identifier", IsError = true });
+            }
 
+            _logger.LogInformation("User {UserId} removing game {GameId} from played list", userIdInt, gameId);
             var result = await _userRepo.RemoveGameFromPlayedAsync(userIdInt, gameId);
+
             if (result.IsError)
                 return NotFound(result);
 
@@ -112,9 +143,14 @@ namespace gameboxed.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int userIdInt))
-                return Unauthorized(new { Message = "Invalid user identifier" });
+            {
+                _logger.LogWarning("Invalid user identifier in token");
+                return Unauthorized(new MyResponse<string> { Message = "Invalid user identifier", IsError = true });
+            }
 
+            _logger.LogInformation("User {UserId} retrieving played games", userIdInt);
             var result = await _userRepo.GetPlayedGamesAsync(userIdInt);
+
             if (result.IsError)
                 return NotFound(result);
 
@@ -126,6 +162,9 @@ namespace gameboxed.Controllers
         [HttpPost]
         public async Task<IActionResult> AddGame([FromBody] GameDto dto)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            _logger.LogInformation("Admin user {UserId} adding new game: {GameTitle}", userId, dto.Title);
+
             var result = await _gameRepo.AddAsync(dto);
             if (result.IsError)
                 return BadRequest(result);
@@ -137,6 +176,9 @@ namespace gameboxed.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateGame(int id, [FromBody] GameDto dto)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            _logger.LogInformation("Admin user {UserId} updating game {GameId}", userId, id);
+
             var result = await _gameRepo.UpdateAsync(id, dto);
             if (result.IsError)
                 return BadRequest(result);
@@ -148,6 +190,9 @@ namespace gameboxed.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteGame(int id)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            _logger.LogInformation("Admin user {UserId} deleting game {GameId}", userId, id);
+
             var result = await _gameRepo.DeleteAsync(id);
             if (result.IsError)
                 return NotFound(result);

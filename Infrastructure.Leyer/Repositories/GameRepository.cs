@@ -5,6 +5,7 @@ using Domain.Leyer.Entities;
 using Infrastructure.Leyer.Helper;
 using Infrastructure.Leyer.MyDbSetting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,14 +16,17 @@ namespace Infrastructure.Leyer.Repositories
     public class GameRepository : IGameRepository
     {
         private readonly AppDbContext _context;
-
-        public GameRepository(AppDbContext context)
+        private readonly ILogger<GameRepository> _logger;
+        public GameRepository(AppDbContext context , ILogger<GameRepository> logger )
         {
+            _logger = logger;
             _context = context;
         }
 
         public async Task<MyResponse<bool>> RateGameAsync(int userId, int gameId, int rating)
         {
+            _logger.LogInformation("User {UserId} is rating game {GameId} with score {Rating}", userId, gameId, rating);
+
             // Validate rating (assuming rating is 0-5)
             if (rating < 0 || rating > 5)
                 return MyResponse<bool>.Error("Rating must be between 0 and 5.");
@@ -96,18 +100,19 @@ namespace Infrastructure.Leyer.Repositories
             return MyResponse<double>.Success("Average rating calculated.", average);
         }
 
-        public async Task<IEnumerable<Game>> GetAllAsync() =>
-            await _context.Games
+        public async Task<MyResponse<IEnumerable<Game>>> GetAllAsync()
+        {
+            var games = await _context.Games
                 .Include(g => g.GameRatings)
                 .ToListAsync();
 
-        public async Task<Game> GetByIdAsync(int id) =>
-            await _context.Games
-                .Include(g => g.GameRatings)
-                .FirstOrDefaultAsync(g => g.Id == id);
+            return MyResponse<IEnumerable<Game>>.Success("Games retrieved successfully", games);
+        }
 
         public async Task<MyResponse<bool>> AddAsync(GameDto gameDto)
         {
+            _logger.LogInformation("New game added: {Title}", gameDto.Title);
+
             // Check if game with same title already exists
             var existingGame = await _context.Games
                 .FirstOrDefaultAsync(g => g.Title.ToLower() == gameDto.Title.ToLower());
@@ -188,6 +193,17 @@ namespace Infrastructure.Leyer.Repositories
                 return MyResponse<IEnumerable<Game>>.Error("No games found matching search criteria.");
 
             return MyResponse<IEnumerable<Game>>.Success("Games found.", results);
+        }
+        public async Task<MyResponse<Game>> GetByIdAsync(int id)
+        {
+            var game = await _context.Games
+                .Include(g => g.GameRatings)
+                .FirstOrDefaultAsync(g => g.Id == id);
+
+            if (game == null)
+                return MyResponse<Game>.Error("Game not found");
+
+            return MyResponse<Game>.Success("Game retrieved successfully", game);
         }
     }
 }

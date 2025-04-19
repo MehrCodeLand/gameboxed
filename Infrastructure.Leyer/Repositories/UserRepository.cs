@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Api.Leyer.DTOs;
 using Api.Leyer.Strcuts;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 
 namespace Infrastructure.Leyer.Repositories
@@ -15,9 +16,11 @@ namespace Infrastructure.Leyer.Repositories
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly ITokenService _tokenService;
-
-        public UserRepository(AppDbContext context, IConfiguration configuration, ITokenService tokenService)
+        private readonly ILogger<UserRepository> _logger;
+        public UserRepository(
+            AppDbContext context, IConfiguration configuration, ITokenService tokenService , ILogger<UserRepository> logger)
         {
+            _logger = logger;
             _context = context;
             _configuration = configuration;
             _tokenService = tokenService;
@@ -78,6 +81,9 @@ namespace Infrastructure.Leyer.Repositories
                 await _context.SaveChangesAsync();
             }
 
+            _logger.LogInformation("New user registration: {Username}", dto.Username);
+
+
             // time to add user 
             var user = new User
             {
@@ -96,6 +102,7 @@ namespace Infrastructure.Leyer.Repositories
         // ----- New Login Implementation -----
         public async Task<MyResponse<string>> LoginAsync(UserLoginDto dto)
         {
+            _logger.LogInformation("Login attempt for user {Username}", dto.Username);
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
